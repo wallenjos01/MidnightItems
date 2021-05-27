@@ -1,0 +1,32 @@
+artifacts {
+    jar
+    sourcesJar
+}
+
+dependencies {
+    
+    compile("me.m1dnightninja.midnightcore:api:1.0-latest")
+    
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            version = project.ext.publicationVersion
+            artifact(jar)
+            artifact(sourcesJar)
+        }
+    }
+
+    repositories {
+        maven {
+            if (project.hasProperty("pubUrl")) {
+                url = project.pubUrl as String
+                credentials {
+                    username project.pubUser as String
+                    password project.pubPass as String
+                }
+            }
+        }
+    }
+}

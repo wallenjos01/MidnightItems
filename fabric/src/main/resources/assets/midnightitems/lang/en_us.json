@@ -1,0 +1,8 @@
+{
+  "item.use.cooldown": "&cYou must wait &f%cooldown_seconds% seconds &cbefore using that item again!",
+  "command.give.result": "&dGave &f%item_count%x %item_name% &dto &f%player_name%&d.",
+  "command.give.result.multiple": "&dGave &f%item_count%x %item_name% &dto &f%player_count% &dPlayers.",
+  "command.reload.result": "&dMidnightItems reloaded in &f%elapsed%ms&d!",
+  "command.error.invalid_item": "&cThat is not a valid item",
+  "command.error.no_item": "&cYou cannot rename air!"
+}
