@@ -2,15 +2,18 @@ package me.m1dnightninja.midnightitems.fabric;
 
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
+import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
-import me.m1dnightninja.midnightcore.api.inventory.MItemStack;
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import me.m1dnightninja.midnightcore.api.module.lang.CustomPlaceholder;
 import me.m1dnightninja.midnightcore.api.module.lang.CustomPlaceholderInline;
-import me.m1dnightninja.midnightcore.fabric.api.PermissionHelper;
+import me.m1dnightninja.midnightcore.api.text.MComponent;
+import me.m1dnightninja.midnightcore.api.text.MStyle;
 import me.m1dnightninja.midnightcore.fabric.inventory.FabricItem;
 import me.m1dnightninja.midnightcore.fabric.module.lang.LangModule;
 import me.m1dnightninja.midnightcore.fabric.player.FabricPlayer;
 import me.m1dnightninja.midnightcore.fabric.util.ConversionUtil;
+import me.m1dnightninja.midnightcore.fabric.util.PermissionUtil;
 import me.m1dnightninja.midnightitems.api.MidnightItemsAPI;
 import me.m1dnightninja.midnightitems.api.item.MidnightItem;
 import net.minecraft.commands.CommandSourceStack;
@@ -32,9 +35,9 @@ public class MainCommand {
 
         dispatcher.register(
             Commands.literal("mitem")
-                .requires(context -> PermissionHelper.checkOrOp(context, "midnightitems.command", 2))
+                .requires(context -> PermissionUtil.checkOrOp(context, "midnightitems.command", 2))
                 .then(Commands.literal("give")
-                    .requires(context -> PermissionHelper.checkOrOp(context, "midnightitems.command.give", 2))
+                    .requires(context -> PermissionUtil.checkOrOp(context, "midnightitems.command.give", 2))
                     .then(Commands.argument("targets", EntityArgument.players())
                         .then(Commands.argument("id", ResourceLocationArgument.id())
                             .suggests((context, builder) -> {
@@ -54,20 +57,22 @@ public class MainCommand {
                         )
                     )
                 )
-                /*.then(Commands.literal("name")
-                    .requires(context -> PermissionHelper.checkOrOp(context, "midnightitems.command.name", 2))
-
+                .then(Commands.literal("name")
+                    .requires(context -> PermissionUtil.checkOrOp(context, "midnightitems.command.name", 2))
+                    .then(Commands.argument("name", StringArgumentType.greedyString())
+                        .executes(context -> executeName(context, context.getArgument("name", String.class)))
+                    )
                 )
-                .then(Commands.literal("lore")
-                    .requires(context -> PermissionHelper.checkOrOp(context, "midnightitems.command.lore", 2))
+                /*.then(Commands.literal("lore")
+                    .requires(context -> PermissionUtil.checkOrOp(context, "midnightitems.command.lore", 2))
 
                 )
                 .then(Commands.literal("save")
-                    .requires(context -> PermissionHelper.checkOrOp(context, "midnightitems.command.save", 2))
+                    .requires(context -> PermissionUtil.checkOrOp(context, "midnightitems.command.save", 2))
 
                 )*/
                 .then(Commands.literal("reload")
-                    .requires(context -> PermissionHelper.checkOrOp(context, "midnightitems.command.reload", 3))
+                    .requires(context -> PermissionUtil.checkOrOp(context, "midnightitems.command.reload", 3))
                     .executes(this::reloadCommand)
                 )
             );
@@ -86,7 +91,7 @@ public class MainCommand {
             for (ServerPlayer pl : players) {
                 ItemStack stack = ((FabricItem) item.getItemStack()).getMinecraftItem();
                 stack.setCount(amount);
-                pl.inventory.add(stack);
+                pl.getInventory().add(stack);
             }
 
             if (players.size() == 1) {
@@ -100,6 +105,24 @@ public class MainCommand {
         }
         return players.size() * amount;
 
+    }
+
+    private int executeName(CommandContext<CommandSourceStack> context, String name) throws CommandSyntaxException {
+
+        ItemStack is = context.getSource().getPlayerOrException().getMainHandItem();
+        if(is == null || is.isEmpty()) {
+            LangModule.sendCommandFailure(context, MidnightItemsAPI.getInstance().getLangProvider(), "command.error.no_item");
+            return 0;
+        }
+
+        MComponent comp = MComponent.createTextComponent("").withStyle(MStyle.ITEM_BASE).addChild(MComponent.Serializer.parse(name));
+
+        FabricItem item = new FabricItem(is);
+        item.setName(comp);
+        item.update();
+
+        LangModule.sendCommandSuccess(context, MidnightItemsAPI.getInstance().getLangProvider(), true, "command.name.result", new CustomPlaceholder("item_name", comp));
+        return 1;
     }
 
     private int reloadCommand(CommandContext<CommandSourceStack> context) {

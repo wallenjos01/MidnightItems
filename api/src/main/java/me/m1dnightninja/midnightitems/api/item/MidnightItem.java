@@ -7,22 +7,25 @@ import me.m1dnightninja.midnightcore.api.player.MPlayer;
 import me.m1dnightninja.midnightcore.api.registry.MIdentifier;
 import me.m1dnightninja.midnightitems.api.MidnightItemsAPI;
 import me.m1dnightninja.midnightitems.api.action.ItemAction;
+import me.m1dnightninja.midnightitems.api.action.ItemActionType;
 import me.m1dnightninja.midnightitems.api.requirement.ItemRequirement;
 
 import java.util.*;
 
 public class MidnightItem {
 
-    private final HashMap<Activator, List<ItemAction>> actions = new HashMap<>();
+    private final HashMap<Activator, List<ItemAction<?>>> actions = new HashMap<>();
 
     private final MItemStack itemStack;
     private final int cooldown;
     private final ItemRequirement useRequirement;
+    private final MIdentifier id;
 
     public MidnightItem(MIdentifier id, MItemStack itemStack, int cooldown, ItemRequirement useRequirement) {
         this.itemStack = itemStack;
         this.cooldown = cooldown;
         this.useRequirement = useRequirement;
+        this.id = id;
 
         ConfigSection sec = new ConfigSection();
         if(cooldown > 0) {
@@ -37,7 +40,11 @@ public class MidnightItem {
 
     }
 
-    public void addAction(Activator act, ItemAction action) {
+    public MIdentifier getId() {
+        return id;
+    }
+
+    public void addAction(Activator act, ItemAction<?> action) {
         actions.compute(act, (k,v) -> {
             if(v == null) {
                 return Collections.singletonList(action);
@@ -48,7 +55,7 @@ public class MidnightItem {
         });
     }
 
-    public HashMap<Activator, List<ItemAction>> getActions() {
+    public HashMap<Activator, List<ItemAction<?>>> getActions() {
         return actions;
     }
 
@@ -76,7 +83,7 @@ public class MidnightItem {
                 long time = System.currentTimeMillis() - (sec.has("last_used") ? sec.getLong("last_used") : 0);
                 if(time < cooldown) {
 
-                    MidnightItemsAPI.getInstance().getLangProvider().sendMessage("item.use.cooldown", pl, pl, is, this, new CustomPlaceholderInline("cooldown_seconds", (time * 1000)+""));
+                    MidnightItemsAPI.getInstance().getLangProvider().sendMessage("item.use.cooldown", pl, pl, is, this, new CustomPlaceholderInline("cooldown_seconds", (time / 1000)+""));
                     return;
                 }
                 sec.set("last_used", System.currentTimeMillis());
@@ -84,7 +91,7 @@ public class MidnightItem {
             itemStack.update();
         }
 
-        for(ItemAction action : actions.get(act)) {
+        for(ItemAction<?> action : actions.get(act)) {
             action.execute(pl, is, this);
         }
     }
@@ -119,7 +126,7 @@ public class MidnightItem {
 
                 for(ConfigSection sct : asec.getListFiltered(s, ConfigSection.class)) {
 
-                    out.addAction(act, ItemAction.parse(sct));
+                    out.addAction(act, ItemActionType.parseAction(sct));
                 }
             }
         }
@@ -134,6 +141,7 @@ public class MidnightItem {
         LEFT("left"),
         SHIFT_RIGHT("shift_right"),
         SHIFT_LEFT("shift_left"),
+        EAT("eat"),
         THROW("throw");
 
         String id;

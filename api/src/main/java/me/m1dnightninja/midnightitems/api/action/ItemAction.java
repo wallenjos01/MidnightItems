@@ -1,30 +1,29 @@
 package me.m1dnightninja.midnightitems.api.action;
 
 import me.m1dnightninja.midnightcore.api.config.ConfigSection;
+import me.m1dnightninja.midnightcore.api.config.ConfigSerializer;
 import me.m1dnightninja.midnightcore.api.inventory.MItemStack;
 import me.m1dnightninja.midnightcore.api.player.MPlayer;
-import me.m1dnightninja.midnightcore.api.registry.MIdentifier;
-import me.m1dnightninja.midnightitems.api.MidnightItemsAPI;
 import me.m1dnightninja.midnightitems.api.item.MidnightItem;
 import me.m1dnightninja.midnightitems.api.requirement.ItemRequirement;
 
-public class ItemAction {
+public class ItemAction<T> {
 
-    private final ItemActionType type;
-    private final String value;
+    private final ItemActionType<T> type;
+    private final T value;
     private final ItemRequirement requirement;
 
-    public ItemAction(ItemActionType type, String value, ItemRequirement requirement) {
+    public ItemAction(ItemActionType<T> type, T value, ItemRequirement requirement) {
         this.type = type;
         this.value = value;
         this.requirement = requirement;
     }
 
-    public ItemActionType getType() {
+    public ItemActionType<?> getType() {
         return type;
     }
 
-    public String getValue() {
+    public Object getValue() {
         return value;
     }
 
@@ -41,17 +40,16 @@ public class ItemAction {
         type.execute(player, stack, item, value);
     }
 
-    public static ItemAction parse(ConfigSection sec) {
-
-        if(sec.has("id", String.class)) {
-            return MidnightItemsAPI.getInstance().getActionRegistry().get(MIdentifier.parse(sec.getString("id")));
+    public static final ConfigSerializer<ItemAction> SERIALIZER = new ConfigSerializer<ItemAction>() {
+        @Override
+        public ItemAction deserialize(ConfigSection section) {
+            return ItemActionType.parseAction(section);
         }
 
-        ItemActionType type = ItemActionType.ITEM_ACTION_REGISTRY.get(MIdentifier.parseOrDefault(sec.getString("type"), "midnightitems"));
-        String value = sec.has("value") ? sec.getString("value") : null;
-        ItemRequirement req = sec.has("requirement", ConfigSection.class) ? ItemRequirement.parse(sec.getSection("requirement")) : null;
-
-        return new ItemAction(type, value, req);
-    }
+        @Override
+        public ConfigSection serialize(ItemAction object) {
+            return null;
+        }
+    };
 
 }

@@ -1,8 +1,8 @@
 package me.m1dnightninja.midnightitems.api;
 
-import me.m1dnightninja.midnightcore.api.ILogger;
 import me.m1dnightninja.midnightcore.api.MidnightCoreAPI;
 import me.m1dnightninja.midnightcore.api.config.ConfigProvider;
+import me.m1dnightninja.midnightcore.api.config.ConfigRegistry;
 import me.m1dnightninja.midnightcore.api.config.ConfigSection;
 import me.m1dnightninja.midnightcore.api.config.FileConfig;
 import me.m1dnightninja.midnightcore.api.module.lang.ILangModule;
@@ -10,8 +10,12 @@ import me.m1dnightninja.midnightcore.api.module.lang.ILangProvider;
 import me.m1dnightninja.midnightcore.api.registry.MIdentifier;
 import me.m1dnightninja.midnightcore.api.registry.MRegistry;
 import me.m1dnightninja.midnightitems.api.action.ItemAction;
+import me.m1dnightninja.midnightitems.api.action.ItemActionType;
+import me.m1dnightninja.midnightitems.api.action.ToggleItemActionData;
 import me.m1dnightninja.midnightitems.api.item.MidnightItem;
 import me.m1dnightninja.midnightitems.api.requirement.ItemRequirement;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.File;
 import java.util.function.Consumer;
@@ -19,7 +23,7 @@ import java.util.function.Consumer;
 public class MidnightItemsAPI {
 
     private static MidnightItemsAPI instance;
-    private static ILogger logger;
+    private static final Logger logger = LogManager.getLogger("MidnightItems");
 
     private final ILangProvider langProvider;
 
@@ -30,25 +34,26 @@ public class MidnightItemsAPI {
     private final ConfigSection configDefaults;
 
     private final MRegistry<MidnightItem> itemRegistry = new MRegistry<>();
-    private final MRegistry<ItemAction> actionRegistry = new MRegistry<>();
+    private final MRegistry<ItemAction<?>> actionRegistry = new MRegistry<>();
     private final MRegistry<ItemRequirement> requirementRegistry = new MRegistry<>();
 
-    public MidnightItemsAPI(ILogger log, File dataFolder, MidnightCoreAPI api, ConfigSection configDefaults, ConfigSection langDefaults) {
+    public MidnightItemsAPI(File dataFolder, MidnightCoreAPI api, ConfigSection configDefaults, ConfigSection langDefaults) {
 
-        logger = log;
         instance = this;
 
         this.dataFolder = dataFolder;
         this.configDefaults = configDefaults;
 
-        if(!dataFolder.exists() && !(dataFolder.mkdirs() && dataFolder.setReadable(true) && dataFolder.setWritable(true))) {
+        if(!dataFolder.exists() && !dataFolder.mkdirs()) {
             throw new IllegalStateException("Unable to create data folder!");
         }
 
-        ConfigProvider prov = api.getDefaultConfigProvider();
+        ConfigProvider prov = ConfigRegistry.INSTANCE.getDefaultProvider();
+        api.getConfigRegistry().registerSerializer(ItemAction.class, ItemAction.SERIALIZER);
+        api.getConfigRegistry().registerSerializer(ToggleItemActionData.class, ToggleItemActionData.SERIALIZER);
 
         File langFolder = new File(dataFolder, "lang");
-        langProvider = api.getModule(ILangModule.class).createLangProvider(langFolder, prov, langDefaults);
+        langProvider = api.getModule(ILangModule.class).createLangProvider(langFolder, langDefaults);
 
         File configFile = new File(dataFolder, "config" + prov.getFileExtension());
 
@@ -88,7 +93,7 @@ public class MidnightItemsAPI {
 
                 String extension = rf.getName().substring(rf.getName().lastIndexOf("."));
                 String path = rf.getName().substring(0, rf.getName().length() - extension.length());
-                ConfigSection data = MidnightCoreAPI.getConfigRegistry().getProviderForFileType(extension).loadFromFile(rf);
+                ConfigSection data = MidnightCoreAPI.getInstance().getConfigRegistry().getProviderForFileType(extension).loadFromFile(rf);
 
                 requirementRegistry.register(MIdentifier.create(namespace, path), ItemRequirement.parse(data));
 
@@ -98,9 +103,9 @@ public class MidnightItemsAPI {
 
                 String extension = af.getName().substring(af.getName().lastIndexOf("."));
                 String path = af.getName().substring(0, af.getName().length() - extension.length());
-                ConfigSection data = MidnightCoreAPI.getConfigRegistry().getProviderForFileType(extension).loadFromFile(af);
+                ConfigSection data = MidnightCoreAPI.getInstance().getConfigRegistry().getProviderForFileType(extension).loadFromFile(af);
 
-                actionRegistry.register(MIdentifier.create(namespace, path), ItemAction.parse(data));
+                actionRegistry.register(MIdentifier.create(namespace, path), ItemActionType.parseAction(data));
 
             });
 
@@ -108,7 +113,7 @@ public class MidnightItemsAPI {
 
                 String extension = f.getName().substring(f.getName().lastIndexOf("."));
                 String path = f.getName().substring(0, f.getName().length() - extension.length());
-                ConfigSection data = MidnightCoreAPI.getConfigRegistry().getProviderForFileType(extension).loadFromFile(f);
+                ConfigSection data = MidnightCoreAPI.getInstance().getConfigRegistry().getProviderForFileType(extension).loadFromFile(f);
                 MIdentifier id = MIdentifier.create(namespace, path);
 
                 itemRegistry.register(id, MidnightItem.parse(id, data));
@@ -146,7 +151,7 @@ public class MidnightItemsAPI {
         return instance;
     }
 
-    public static ILogger getLogger() {
+    public static Logger getLogger() {
         return logger;
     }
 
@@ -154,7 +159,7 @@ public class MidnightItemsAPI {
         return itemRegistry;
     }
 
-    public MRegistry<ItemAction> getActionRegistry() {
+    public MRegistry<ItemAction<?>> getActionRegistry() {
         return actionRegistry;
     }
 

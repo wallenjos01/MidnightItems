@@ -4,7 +4,7 @@ plugins {
 
 configurations {
     shade
-    compile.extendsFrom(shade)
+    compileOnly.extendsFrom(shade)
 }
 
 artifacts {
@@ -24,7 +24,6 @@ shadowJar {
     }
 
 }
-
 publishing {
     publications {
         mavenJava(MavenPublication) {
@@ -33,7 +32,6 @@ publishing {
             artifact(sourcesJar)
         }
     }
-
     repositories {
         maven {
             if (project.hasProperty("pubUrl")) {
