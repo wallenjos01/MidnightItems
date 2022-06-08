@@ -1,11 +1,11 @@
-package me.m1dnightninja.midnightitems.api.action;
+package org.wallentines.midnightitems.api.action;
 
-import me.m1dnightninja.midnightcore.api.config.ConfigSection;
-import me.m1dnightninja.midnightcore.api.config.ConfigSerializer;
-import me.m1dnightninja.midnightcore.api.inventory.MItemStack;
-import me.m1dnightninja.midnightcore.api.player.MPlayer;
-import me.m1dnightninja.midnightitems.api.item.MidnightItem;
-import me.m1dnightninja.midnightitems.api.requirement.ItemRequirement;
+import org.wallentines.midnightitems.api.item.MidnightItem;
+import org.wallentines.midnightlib.config.ConfigSection;
+import org.wallentines.midnightlib.config.serialization.ConfigSerializer;
+import org.wallentines.midnightcore.api.item.MItemStack;
+import org.wallentines.midnightcore.api.player.MPlayer;
+import org.wallentines.midnightitems.api.requirement.ItemRequirement;
 
 public class ItemAction<T> {
 
@@ -40,7 +40,7 @@ public class ItemAction<T> {
         type.execute(player, stack, item, value);
     }
 
-    public static final ConfigSerializer<ItemAction> SERIALIZER = new ConfigSerializer<ItemAction>() {
+    public static final ConfigSerializer<ItemAction> SERIALIZER = new ConfigSerializer<>() {
         @Override
         public ItemAction deserialize(ConfigSection section) {
             return ItemActionType.parseAction(section);

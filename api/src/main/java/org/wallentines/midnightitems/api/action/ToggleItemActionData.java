@@ -1,10 +1,10 @@
-package me.m1dnightninja.midnightitems.api.action;
+package org.wallentines.midnightitems.api.action;
 
-import me.m1dnightninja.midnightcore.api.config.ConfigSection;
-import me.m1dnightninja.midnightcore.api.config.ConfigSerializer;
-import me.m1dnightninja.midnightcore.api.inventory.MItemStack;
-import me.m1dnightninja.midnightcore.api.player.MPlayer;
-import me.m1dnightninja.midnightitems.api.item.MidnightItem;
+import org.wallentines.midnightlib.config.ConfigSection;
+import org.wallentines.midnightlib.config.serialization.ConfigSerializer;
+import org.wallentines.midnightcore.api.item.MItemStack;
+import org.wallentines.midnightcore.api.player.MPlayer;
+import org.wallentines.midnightitems.api.item.MidnightItem;
 
 import java.util.Collection;
 
@@ -26,7 +26,7 @@ public class ToggleItemActionData {
         boolean newState = !items.getBoolean("state");
 
         items.set("state", newState);
-        stack.update();
+        stack.setTag(tag);
 
         if(newState) {
             enable.forEach(act -> act.execute(player, stack, item));

@@ -1,16 +1,20 @@
 pluginManagement {
     repositories {
-        jcenter()
-        maven {
-            url 'https://maven.fabricmc.net/'
-        }
         gradlePluginPortal()
+        maven {
+            name = 'Fabric'
+            url = 'https://maven.fabricmc.net/'
+        }
     }
 }
 
-rootProject.name = 'midnightitems'
+rootProject.name = "midnightitems"
 
 include 'api'
 include 'common'
+
 include 'fabric'
 include 'spigot'
+include 'forge'
+include 'velocity'
+include 'bungee'

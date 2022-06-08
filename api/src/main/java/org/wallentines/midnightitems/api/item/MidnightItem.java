@@ -1,14 +1,14 @@
-package me.m1dnightninja.midnightitems.api.item;
+package org.wallentines.midnightitems.api.item;
 
-import me.m1dnightninja.midnightcore.api.config.ConfigSection;
-import me.m1dnightninja.midnightcore.api.inventory.MItemStack;
-import me.m1dnightninja.midnightcore.api.module.lang.CustomPlaceholderInline;
-import me.m1dnightninja.midnightcore.api.player.MPlayer;
-import me.m1dnightninja.midnightcore.api.registry.MIdentifier;
-import me.m1dnightninja.midnightitems.api.MidnightItemsAPI;
-import me.m1dnightninja.midnightitems.api.action.ItemAction;
-import me.m1dnightninja.midnightitems.api.action.ItemActionType;
-import me.m1dnightninja.midnightitems.api.requirement.ItemRequirement;
+import org.wallentines.midnightlib.config.ConfigSection;
+import org.wallentines.midnightcore.api.item.MItemStack;
+import org.wallentines.midnightcore.api.module.lang.CustomPlaceholderInline;
+import org.wallentines.midnightcore.api.player.MPlayer;
+import org.wallentines.midnightlib.registry.Identifier;
+import org.wallentines.midnightitems.api.MidnightItemsAPI;
+import org.wallentines.midnightitems.api.action.ItemAction;
+import org.wallentines.midnightitems.api.action.ItemActionType;
+import org.wallentines.midnightitems.api.requirement.ItemRequirement;
 
 import java.util.*;
 
@@ -19,13 +19,15 @@ public class MidnightItem {
     private final MItemStack itemStack;
     private final int cooldown;
     private final ItemRequirement useRequirement;
-    private final MIdentifier id;
+    private final Identifier id;
+    private final boolean permanent;
 
-    public MidnightItem(MIdentifier id, MItemStack itemStack, int cooldown, ItemRequirement useRequirement) {
+    public MidnightItem(Identifier id, MItemStack itemStack, int cooldown, ItemRequirement useRequirement, boolean permanent) {
         this.itemStack = itemStack;
         this.cooldown = cooldown;
         this.useRequirement = useRequirement;
         this.id = id;
+        this.permanent = permanent;
 
         ConfigSection sec = new ConfigSection();
         if(cooldown > 0) {
@@ -40,17 +42,14 @@ public class MidnightItem {
 
     }
 
-    public MIdentifier getId() {
+    public Identifier getId() {
         return id;
     }
 
     public void addAction(Activator act, ItemAction<?> action) {
         actions.compute(act, (k,v) -> {
-            if(v == null) {
-                return Collections.singletonList(action);
-            } else {
-                v.add(action);
-            }
+            if(v == null) v = new ArrayList<>();
+            v.add(action);
             return v;
         });
     }
@@ -71,6 +70,10 @@ public class MidnightItem {
         return useRequirement;
     }
 
+    public boolean isPermanent() {
+        return permanent;
+    }
+
     public void execute(Activator act, MPlayer pl, MItemStack is) {
 
         if(!actions.containsKey(act) || (useRequirement != null && !useRequirement.checkOrDeny(pl, is, this))) {
@@ -83,7 +86,7 @@ public class MidnightItem {
                 long time = System.currentTimeMillis() - (sec.has("last_used") ? sec.getLong("last_used") : 0);
                 if(time < cooldown) {
 
-                    MidnightItemsAPI.getInstance().getLangProvider().sendMessage("item.use.cooldown", pl, pl, is, this, new CustomPlaceholderInline("cooldown_seconds", (time / 1000)+""));
+                    pl.sendMessage(MidnightItemsAPI.getInstance().getLangProvider().getMessage("item.use.cooldown", pl, pl, is, this, CustomPlaceholderInline.create("cooldown_seconds", (time / 1000)+"")));
                     return;
                 }
                 sec.set("last_used", System.currentTimeMillis());
@@ -98,21 +101,22 @@ public class MidnightItem {
 
     public static MidnightItem fromItem(MItemStack is) {
 
-        if(!is.getTag().has("MidnightItems", ConfigSection.class)) return null;
+        if(is.getTag() == null || !is.getTag().has("MidnightItems", ConfigSection.class)) return null;
         ConfigSection sec = is.getTag().getSection("MidnightItems");
 
-        MIdentifier id = sec.has("id") ? MIdentifier.parse(sec.getString("id")) : null;
+        Identifier id = sec.has("id") ? Identifier.parse(sec.getString("id")) : null;
 
         return MidnightItemsAPI.getInstance().getItemRegistry().get(id);
     }
 
-    public static MidnightItem parse(MIdentifier id, ConfigSection sec) {
+    public static MidnightItem parse(Identifier id, ConfigSection sec) {
 
         MItemStack stack = sec.get("item", MItemStack.class);
         int cooldown = sec.has("cooldown", Number.class) ? sec.getInt("cooldown") : 0;
         ItemRequirement requirement = sec.has("requirement") ? ItemRequirement.parse(sec.getSection("requirement")) : null;
+        boolean permanent = sec.getBoolean("permanent");
 
-        MidnightItem out = new MidnightItem(id, stack, cooldown, requirement);
+        MidnightItem out = new MidnightItem(id, stack, cooldown, requirement, permanent);
 
         if(sec.has("actions", ConfigSection.class)) {
 
