@@ -1,14 +1,14 @@
 package org.wallentines.midnightitems.api.requirement;
 
-import org.wallentines.midnightcore.api.MidnightCoreAPI;
-import org.wallentines.midnightlib.config.ConfigSection;
+import org.wallentines.mdcfg.serializer.SerializeContext;
+import org.wallentines.mdcfg.serializer.SerializeResult;
+import org.wallentines.mdcfg.serializer.Serializer;
+import org.wallentines.midnightcore.api.Registries;
 import org.wallentines.midnightcore.api.item.MItemStack;
 import org.wallentines.midnightcore.api.player.MPlayer;
 import org.wallentines.midnightlib.requirement.Requirement;
-import org.wallentines.midnightlib.registry.Identifier;
 import org.wallentines.midnightitems.api.MidnightItemsAPI;
 import org.wallentines.midnightitems.api.action.ItemAction;
-import org.wallentines.midnightitems.api.action.ItemActionType;
 import org.wallentines.midnightitems.api.item.MidnightItem;
 
 public class ItemRequirement {
@@ -26,7 +26,7 @@ public class ItemRequirement {
         return denyAction;
     }
 
-    public boolean check(MPlayer player, MItemStack is, MidnightItem item) {
+    public boolean check(MPlayer player) {
         return requirement.check(player);
     }
 
@@ -41,16 +41,22 @@ public class ItemRequirement {
         return false;
     }
 
-    public static ItemRequirement parse(ConfigSection sec) {
+    public static final Serializer<ItemRequirement> SERIALIZER = MidnightItemsAPI.getInstance().getRequirementRegistry().nameSerializer().or(
+            new Serializer<>() {
+                @Override
+                public <O> SerializeResult<O> serialize(SerializeContext<O> context, ItemRequirement value) {
+                    return null;
+                }
 
-        if(sec.has("id", String.class)) {
-            return MidnightItemsAPI.getInstance().getRequirementRegistry().get(Identifier.parse("type"));
-        }
+                @Override
+                public <O> SerializeResult<ItemRequirement> deserialize(SerializeContext<O> context, O value) {
 
-        Requirement.RequirementSerializer<MPlayer> serializer = new Requirement.RequirementSerializer<>(MidnightCoreAPI.getInstance().getRequirementRegistry());
-        Requirement<MPlayer> req = serializer.deserialize(sec);
-        ItemAction<?> denyAction = sec.has("action", ConfigSection.class) ? ItemActionType.parseAction(sec.getSection("action")) : null;
+                    SerializeResult<Requirement<MPlayer>> req = Requirement.serializer(Registries.REQUIREMENT_REGISTRY).deserialize(context, value);
+                    if(!req.isComplete()) return SerializeResult.failure(req.getError());
 
-        return new ItemRequirement(req, denyAction);
-    }
+                    ItemAction<?> denyAction = ItemAction.SERIALIZER.deserialize(context, context.get("action", value)).get().orElse(null);
+                    return SerializeResult.success(new ItemRequirement(req.getOrThrow(), denyAction));
+                }
+            }
+    );
 }

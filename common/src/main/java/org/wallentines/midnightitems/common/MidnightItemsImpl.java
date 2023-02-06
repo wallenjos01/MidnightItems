@@ -1,18 +1,17 @@
 package org.wallentines.midnightitems.common;
 
-import org.wallentines.midnightcore.api.MidnightCoreAPI;
-import org.wallentines.midnightcore.api.module.lang.LangModule;
-import org.wallentines.midnightcore.api.module.lang.LangProvider;
+import org.wallentines.mdcfg.ConfigObject;
+import org.wallentines.mdcfg.codec.DecodeException;
+import org.wallentines.mdcfg.codec.FileWrapper;
+import org.wallentines.mdcfg.serializer.ConfigContext;
+import org.wallentines.midnightcore.api.FileConfig;
+import org.wallentines.midnightcore.api.text.LangProvider;
 import org.wallentines.midnightcore.common.util.FileUtil;
 import org.wallentines.midnightitems.api.MidnightItemsAPI;
 import org.wallentines.midnightitems.api.action.ItemAction;
-import org.wallentines.midnightitems.api.action.ItemActionType;
-import org.wallentines.midnightitems.api.action.ToggleItemActionData;
 import org.wallentines.midnightitems.api.item.MidnightItem;
 import org.wallentines.midnightitems.api.requirement.ItemRequirement;
-import org.wallentines.midnightlib.config.ConfigRegistry;
-import org.wallentines.midnightlib.config.ConfigSection;
-import org.wallentines.midnightlib.config.FileConfig;
+import org.wallentines.mdcfg.ConfigSection;
 import org.wallentines.midnightlib.registry.Identifier;
 import org.wallentines.midnightlib.registry.Registry;
 
@@ -30,11 +29,11 @@ public class MidnightItemsImpl extends MidnightItemsAPI {
 
     private final ConfigSection configDefaults;
 
-    private final Registry<MidnightItem> iteRegistry = new Registry<>();
-    private final Registry<ItemAction<?>> actionRegistry = new Registry<>();
-    private final Registry<ItemRequirement> requirementRegistry = new Registry<>();
+    private final Registry<MidnightItem> itemRegistry = new Registry<>("midnightitems");
+    private final Registry<ItemAction<?>> actionRegistry = new Registry<>("midnightitems");
+    private final Registry<ItemRequirement> requirementRegistry = new Registry<>("midnightitems");
 
-    public MidnightItemsImpl(Path dataFolder, MidnightCoreAPI api, ConfigSection configDefaults, ConfigSection langDefaults) {
+    public MidnightItemsImpl(Path dataFolder, ConfigSection configDefaults, ConfigSection langDefaults) {
 
         File fldr = FileUtil.tryCreateDirectory(dataFolder);
         if(fldr == null) {
@@ -44,11 +43,9 @@ public class MidnightItemsImpl extends MidnightItemsAPI {
         this.dataFolder = fldr;
         this.configDefaults = configDefaults;
 
-        ConfigRegistry.INSTANCE.registerSerializer(ItemAction.class, ItemAction.SERIALIZER);
-        ConfigRegistry.INSTANCE.registerSerializer(ToggleItemActionData.class, ToggleItemActionData.SERIALIZER);
-
         Path langFolder = dataFolder.resolve("lang");
-        langProvider = api.getModuleManager().getModule(LangModule.class).createProvider(langFolder, langDefaults);
+        FileUtil.tryCreateDirectory(langFolder);
+        langProvider = new LangProvider(langFolder, langDefaults);
 
         this.config = FileConfig.findOrCreate("config", fldr);
         this.contentFolder = dataFolder.resolve("content").toFile();
@@ -59,7 +56,7 @@ public class MidnightItemsImpl extends MidnightItemsAPI {
 
     private void loadConfig() {
 
-        config.reload();
+        config.load();
         config.getRoot().fill(configDefaults);
         config.save();
 
@@ -69,7 +66,7 @@ public class MidnightItemsImpl extends MidnightItemsAPI {
             throw new IllegalStateException("Unable to create content folder!");
         }
 
-        iteRegistry.clear();
+        itemRegistry.clear();
         actionRegistry.clear();
         requirementRegistry.clear();
 
@@ -84,32 +81,45 @@ public class MidnightItemsImpl extends MidnightItemsAPI {
 
             forAllFiles(requirementsFldr, (rf) -> {
 
-                String extension = rf.getName().substring(rf.getName().lastIndexOf("."));
-                String path = rf.getName().substring(0, rf.getName().length() - extension.length());
-                ConfigSection data = ConfigRegistry.INSTANCE.getProviderForFileType(extension).loadFromFile(rf);
+                String path = rf.getName().substring(0, rf.getName().lastIndexOf("."));
+                FileWrapper<ConfigObject> data = FileConfig.REGISTRY.fromFile(ConfigContext.INSTANCE, rf);
+                data.load();
 
-                requirementRegistry.register(new Identifier(namespace, path), ItemRequirement.parse(data));
-
+                try {
+                    requirementRegistry.register(new Identifier(namespace, path), ItemRequirement.SERIALIZER.deserialize(ConfigContext.INSTANCE, data.getRoot()).getOrThrow());
+                } catch (DecodeException ex) {
+                    LOGGER.warn("An exception was thrown while parsing a requirement!");
+                    ex.printStackTrace();
+                }
             });
 
             forAllFiles(actionsFldr, (af) -> {
 
-                String extension = af.getName().substring(af.getName().lastIndexOf("."));
-                String path = af.getName().substring(0, af.getName().length() - extension.length());
-                ConfigSection data = ConfigRegistry.INSTANCE.getProviderForFileType(extension).loadFromFile(af);
+                String path = af.getName().substring(0, af.getName().lastIndexOf("."));
+                FileWrapper<ConfigObject> data = FileConfig.REGISTRY.fromFile(ConfigContext.INSTANCE, af);
+                data.load();
 
-                actionRegistry.register(new Identifier(namespace, path), ItemActionType.parseAction(data));
+                try {
+                    actionRegistry.register(new Identifier(namespace, path), ItemAction.SERIALIZER.deserialize(ConfigContext.INSTANCE, data.getRoot()).getOrThrow());
+                } catch (DecodeException ex) {
+                    LOGGER.warn("An exception was thrown while parsing an action!");
+                    ex.printStackTrace();
+                }
 
             });
 
             forAllFiles(itemsFldr, (f) -> {
 
-                String extension = f.getName().substring(f.getName().lastIndexOf("."));
-                String path = f.getName().substring(0, f.getName().length() - extension.length());
-                ConfigSection data = ConfigRegistry.INSTANCE.getProviderForFileType(extension).loadFromFile(f);
-                Identifier id = new Identifier(namespace, path);
+                String path = f.getName().substring(0, f.getName().lastIndexOf("."));
+                FileWrapper<ConfigObject> data = FileConfig.REGISTRY.fromFile(ConfigContext.INSTANCE, f);
+                data.load();
 
-                iteRegistry.register(id, MidnightItem.parse(id, data));
+                try {
+                    itemRegistry.register(new Identifier(namespace, path), MidnightItem.SERIALIZER.deserialize(ConfigContext.INSTANCE, data.getRoot()).getOrThrow());
+                } catch (DecodeException ex) {
+                    LOGGER.warn("An exception was thrown while parsing a MidnightItem!");
+                    ex.printStackTrace();
+                }
 
             });
 
@@ -117,7 +127,7 @@ public class MidnightItemsImpl extends MidnightItemsAPI {
 
         LOGGER.info("Registered " + requirementRegistry.getSize() + " requirements!");
         LOGGER.info("Registered " + actionRegistry.getSize() + " actions!");
-        LOGGER.info("Registered " + iteRegistry.getSize() + " items!");
+        LOGGER.info("Registered " + itemRegistry.getSize() + " items!");
 
     }
 
@@ -126,7 +136,7 @@ public class MidnightItemsImpl extends MidnightItemsAPI {
         if(!folder.exists() || !folder.isDirectory()) return;
 
         File[] files = folder.listFiles();
-        if(files == null || files.length == 0) return;
+        if(files == null) return;
 
         for(File f : files) {
             file.accept(f);
@@ -141,7 +151,7 @@ public class MidnightItemsImpl extends MidnightItemsAPI {
     }
 
     public Registry<MidnightItem> getItemRegistry() {
-        return iteRegistry;
+        return itemRegistry;
     }
 
     public Registry<ItemAction<?>> getActionRegistry() {

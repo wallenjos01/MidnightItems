@@ -10,7 +10,7 @@
   },
   "depends": {
     "fabricloader": ">=${fabricLoader}",
-    "minecraft": "${minecraftVersion}"
+    "minecraft": ">=${minecraftVersion}"
   },
   "name": "${name}",
   "description": "${description}",
@@ -22,6 +22,6 @@
       "name": "M1dnight_Ninja"
     }
   ],
-  "lisence": "LGPL",
+  "license": "LGPL",
   "icon": "icon.png"
 }

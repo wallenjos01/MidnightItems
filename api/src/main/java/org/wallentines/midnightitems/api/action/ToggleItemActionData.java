@@ -1,7 +1,8 @@
 package org.wallentines.midnightitems.api.action;
 
-import org.wallentines.midnightlib.config.ConfigSection;
-import org.wallentines.midnightlib.config.serialization.ConfigSerializer;
+import org.wallentines.mdcfg.ConfigSection;
+import org.wallentines.mdcfg.serializer.ObjectSerializer;
+import org.wallentines.mdcfg.serializer.Serializer;
 import org.wallentines.midnightcore.api.item.MItemStack;
 import org.wallentines.midnightcore.api.player.MPlayer;
 import org.wallentines.midnightitems.api.item.MidnightItem;
@@ -10,10 +11,10 @@ import java.util.Collection;
 
 public class ToggleItemActionData {
 
-    private final Collection<ItemAction> enable;
-    private final Collection<ItemAction> disable;
+    private final Collection<ItemAction<?>> enable;
+    private final Collection<ItemAction<?>> disable;
 
-    public ToggleItemActionData(Collection<ItemAction> enable, Collection<ItemAction> disable) {
+    public ToggleItemActionData(Collection<ItemAction<?>> enable, Collection<ItemAction<?>> disable) {
         this.enable = enable;
         this.disable = disable;
     }
@@ -35,16 +36,9 @@ public class ToggleItemActionData {
         }
     }
 
-    public static final ConfigSerializer<ToggleItemActionData> SERIALIZER = new ConfigSerializer<ToggleItemActionData>() {
-        @Override
-        public ToggleItemActionData deserialize(ConfigSection section) {
-
-            return new ToggleItemActionData(section.getListFiltered("enable", ItemAction.class), section.getListFiltered("disable", ItemAction.class));
-        }
-
-        @Override
-        public ConfigSection serialize(ToggleItemActionData object) {
-            return null;
-        }
-    };
+    public static final Serializer<ToggleItemActionData> SERIALIZER = ObjectSerializer.create(
+            ItemAction.SERIALIZER.listOf().entry("enable", tiad -> tiad.enable),
+            ItemAction.SERIALIZER.listOf().entry("enable", tiad -> tiad.disable),
+            ToggleItemActionData::new
+    );
 }

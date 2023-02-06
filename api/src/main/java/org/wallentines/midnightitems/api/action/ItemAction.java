@@ -1,8 +1,9 @@
 package org.wallentines.midnightitems.api.action;
 
+import org.wallentines.mdcfg.serializer.SerializeContext;
+import org.wallentines.mdcfg.serializer.SerializeResult;
+import org.wallentines.mdcfg.serializer.Serializer;
 import org.wallentines.midnightitems.api.item.MidnightItem;
-import org.wallentines.midnightlib.config.ConfigSection;
-import org.wallentines.midnightlib.config.serialization.ConfigSerializer;
 import org.wallentines.midnightcore.api.item.MItemStack;
 import org.wallentines.midnightcore.api.player.MPlayer;
 import org.wallentines.midnightitems.api.requirement.ItemRequirement;
@@ -40,16 +41,35 @@ public class ItemAction<T> {
         type.execute(player, stack, item, value);
     }
 
-    public static final ConfigSerializer<ItemAction> SERIALIZER = new ConfigSerializer<>() {
-        @Override
-        public ItemAction deserialize(ConfigSection section) {
-            return ItemActionType.parseAction(section);
-        }
+    public static final Serializer<ItemAction<?>> SERIALIZER = serializer();
 
-        @Override
-        public ConfigSection serialize(ItemAction object) {
-            return null;
-        }
-    };
+    private static <T> Serializer<ItemAction<?>> serializer() {
+
+        return new Serializer<>() {
+            @Override
+            public <O> SerializeResult<O> serialize(SerializeContext<O> context, ItemAction<?> value) {
+                return null;
+            }
+
+            @SuppressWarnings("unchecked")
+            @Override
+            public <O> SerializeResult<ItemAction<?>> deserialize(SerializeContext<O> context, O value) {
+
+                SerializeResult<ItemActionType<?>> typeResult =
+                        ItemActionType.ITEM_ACTION_REGISTRY.nameSerializer().deserialize(context, context.get("type", value));
+
+                if(!typeResult.isComplete()) return SerializeResult.failure(typeResult.getError());
+
+                ItemActionType<T> type = (ItemActionType<T>) typeResult.getOrThrow();
+                SerializeResult<T> dataResult = type.serializer.deserialize(context, context.get("value", value));
+
+                if(!dataResult.isComplete()) return SerializeResult.failure(dataResult.getError());
+
+                ItemRequirement req = ItemRequirement.SERIALIZER.deserialize(context, context.get("requirement", value)).get().orElse(null);
+
+                return SerializeResult.success(new ItemAction<>(type, dataResult.getOrThrow(), req));
+            }
+        };
+    }
 
 }

@@ -31,11 +31,13 @@ public class ItemListener {
         MidnightItem mi = MidnightItem.fromItem(is);
         if(mi == null) return;
 
-        event.setCancelled(true);
-
         MidnightItem.Activator act = event.getPlayer().isShiftKeyDown() ?
                 event.isLeftClick() ? MidnightItem.Activator.SHIFT_LEFT : MidnightItem.Activator.SHIFT_RIGHT :
                 event.isLeftClick() ? MidnightItem.Activator.LEFT : MidnightItem.Activator.RIGHT;
+
+        if(!mi.getActions().containsKey(act)) return;
+
+        event.setCancelled(true);
 
         mi.execute(act, FabricPlayer.wrap(event.getPlayer()), is);
     }
@@ -49,8 +51,6 @@ public class ItemListener {
         MItemStack is = new FabricItem(event.getItemStack());
         MidnightItem mi = MidnightItem.fromItem(is);
         if(mi == null) return;
-
-        event.setCancelled(true);
 
         MidnightItem.Activator act = MidnightItem.Activator.EAT;
         mi.execute(act, FabricPlayer.wrap((ServerPlayer) event.getEntity()), is);

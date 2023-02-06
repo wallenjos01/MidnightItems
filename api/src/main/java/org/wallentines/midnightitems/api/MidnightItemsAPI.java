@@ -2,11 +2,11 @@ package org.wallentines.midnightitems.api;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.wallentines.midnightcore.api.module.lang.LangProvider;
+import org.wallentines.midnightcore.api.FileConfig;
+import org.wallentines.midnightcore.api.text.LangProvider;
 import org.wallentines.midnightitems.api.action.ItemAction;
 import org.wallentines.midnightitems.api.item.MidnightItem;
 import org.wallentines.midnightitems.api.requirement.ItemRequirement;
-import org.wallentines.midnightlib.config.FileConfig;
 import org.wallentines.midnightlib.registry.Registry;
 
 import java.io.File;

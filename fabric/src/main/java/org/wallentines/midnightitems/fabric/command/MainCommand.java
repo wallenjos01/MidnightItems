@@ -6,8 +6,8 @@ import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import me.lucko.fabric.api.permissions.v0.Permissions;
-import org.wallentines.midnightcore.api.module.lang.CustomPlaceholder;
-import org.wallentines.midnightcore.api.module.lang.CustomPlaceholderInline;
+import org.wallentines.midnightcore.api.text.CustomPlaceholder;
+import org.wallentines.midnightcore.api.text.CustomPlaceholderInline;
 import org.wallentines.midnightcore.api.text.MComponent;
 import org.wallentines.midnightcore.fabric.item.FabricItem;
 import org.wallentines.midnightcore.fabric.player.FabricPlayer;
@@ -109,7 +109,7 @@ public class MainCommand {
     private static int executeName(CommandContext<CommandSourceStack> context, String name) throws CommandSyntaxException {
 
         ItemStack is = context.getSource().getPlayerOrException().getMainHandItem();
-        if(is == null || is.isEmpty()) {
+        if(is.isEmpty()) {
             CommandUtil.sendCommandFailure(context, MidnightItemsAPI.getInstance().getLangProvider(), "command.error.no_item");
             return 0;
         }
