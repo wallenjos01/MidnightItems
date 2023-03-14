@@ -6,7 +6,7 @@ import org.wallentines.midnightcore.api.item.MItemStack;
 import org.wallentines.midnightcore.fabric.event.player.ContainerClickEvent;
 import org.wallentines.midnightcore.fabric.event.player.PlayerInteractEvent;
 import org.wallentines.midnightcore.fabric.event.player.PlayerDropItemEvent;
-import org.wallentines.midnightcore.fabric.event.world.EntityEatEvent;
+import org.wallentines.midnightcore.fabric.event.entity.EntityEatEvent;
 import org.wallentines.midnightcore.fabric.item.FabricItem;
 import org.wallentines.midnightcore.fabric.player.FabricPlayer;
 import org.wallentines.midnightitems.api.item.MidnightItem;
